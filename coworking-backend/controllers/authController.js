@@ -24,7 +24,7 @@ exports.register = async (req, res) => {
     const user = await User.create({
       username,
       password: hashedPassword,
-      role: "User", // 👈 Hårdkodat
+      role: req.body.role || "User",
     });
 
     const token = generateToken(user);
