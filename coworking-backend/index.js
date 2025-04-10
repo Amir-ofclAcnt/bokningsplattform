@@ -13,12 +13,11 @@ const rateLimit = require("express-rate-limit");
 const { Server } = require("socket.io");
 
 // 🛠 Egna moduler
+const { initSocket } = require("./sockets/notificationSocket"); // 🔌 Importera socket-init
 const devRoutes = require("./routes/devRoutes");
-const connectSocket = require("./sockets/notificationSocket");
 const authRoutes = require("./routes/authRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
-
 const errorHandler = require("./middleware/errorHandler");
 const responseWrapper = require("./middleware/responseWrapper");
 const logger = require("./utils/logger");
@@ -26,27 +25,36 @@ const logger = require("./utils/logger");
 // 🚀 Skapa Express-app & Server
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", // Ändra detta för produktion
+    credentials: true,
+  },
+});
 
-// 🔌 Kopplar in Socket.io
-connectSocket(io);
-app.set("io", io);
+// 🔌 Starta Socket.io-hantering
+initSocket(io);
+app.set("io", io); // Valfritt om du vill använda io via `req.app.get("io")`
 
 // 🌐 CORS-inställningar
-app.use(cors({
-  origin: "http://localhost:5173", // Ändra vid produktion
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Ändra vid deploy
+    credentials: true,
+  })
+);
 
 // 🧱 Middleware
 app.use(helmet());
 app.use(express.json());
 app.use(morgan("dev"));
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minuter
-  max: 100,
-  message: "⛔ För många förfrågningar, försök igen om en stund.",
-}));
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minuter
+    max: 100,
+    message: "⛔ För många förfrågningar, försök igen om en stund.",
+  })
+);
 app.use(responseWrapper);
 
 // 🛣️ Routes
